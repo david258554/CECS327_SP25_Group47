@@ -5,8 +5,6 @@ import socket
 import psycopg2 # DARREL: For connecting to Neon and SQL
 
 # GOALS:
-# 1. Impliment a function for each of these
-#   c. Which device consumed more electricity among my three IoT devices (two refrigerators and a dishwasher)?
 # 2. Impliment a menu that returns the results of these functions
 
 def calculate_avg_fridge_moisture(connection):
@@ -25,7 +23,7 @@ def calculate_avg_fridge_moisture(connection):
 
 def calculate_avg_water_consuption_per_cycle_dishwasher(connection):
     # DARREL: This function calls a query onto the passed connection peram, query calculates the average and prints it
-    # DARREL: The units are leters per min
+    # DARREL: The units are liters per min
     cursor = connection.cursor()
     cursor.execute("""
                    SELECT AVG((payload->>'YF-S201 - water-flow-sensor_dishwasher_01')::numeric) AS moisture_percent 
@@ -39,20 +37,51 @@ def calculate_avg_water_consuption_per_cycle_dishwasher(connection):
 
 def calculate_most_electicity_consumed(connection):
     # DARREL: This function calls a query onto the passed connection peram, query calculates the average and prints it
-    # DARREL: The units are, uh, voltage?
-    print("--FUNCTION CALLED: calculate_most_electicity_consumed--")
-    return(0)
+    # DARREL: The units are, uh, current in amperes
+    cursor = connection.cursor()
+
+    # DARREL: Return voltage from arduino_refrigerator_01
+    cursor.execute("""
+                   SELECT payload->>'ACS712 - ammeter_refrigerator_01' AS voltage_refrigerator_01
+                   FROM neon_table_virtual
+                   WHERE payload->>'board_name' = 'arduino_refrigerator_01';
+                   """)
+    refrig_01_amperes = cursor.fetchone()[0]
+
+    # DARREL: Return voltage from arduino_refrigerator_02
+    cursor.execute("""
+                   SELECT payload->>'ACS712 - ammeter_refrigerator_02' AS voltage_refrigerator_02
+                   FROM neon_table_virtual
+                   WHERE payload->>'board_name' = 'arduino_refrigerator_02';
+                   """)
+    refrig_02_amperes = cursor.fetchone()[0]
+
+    # DARREL: Return voltage from arduino_dishwasher_01
+    cursor.execute("""
+                   SELECT payload->>'ACS712 - ammeter_dishwasher_01' AS voltage_dishwasher_01
+                   FROM neon_table_virtual
+                   WHERE payload->>'board_name' = 'arduino_dishwasher_01';
+                   """)
+    diwash_01_amperes = cursor.fetchone()[0]
+
+    # DARREL: Compare and return largest
+    if refrig_01_amperes > refrig_02_amperes and refrig_01_amperes > diwash_01_amperes:
+        return("Largest last reported amperes is \"refrigerator_01\" with: " + refrig_01_amperes)
+    elif refrig_02_amperes > refrig_01_amperes and refrig_02_amperes > diwash_01_amperes:
+        return("Largest last reported amperes is \"refrigerator_02\" with: " + refrig_02_amperes)
+    else:
+        return("Largest last reported amperes is \"dishwasher_01\" with: " + diwash_01_amperes)
 
 def inital_test(connection):
     # DARREL: This function will call each function, output their results, then go to the start_server function.
     # DARREL: Using this primarly to just test the functions without connecting a client.
     print("")
     print("RUNNING INITAL TESTS:")
-    print("     -CALLING FUNCTION: calculate_avg_fridge_moisture")
+    print("     -CALLING FUNCTION: calculate_avg_fridge_moisture (Relative (0-40))")
     print(calculate_avg_fridge_moisture(connection))
-    print("     -CALLING FUNCTION: calculate_avg_water_consuption_per_cycle_dishwasher")
+    print("     -CALLING FUNCTION: calculate_avg_water_consuption_per_cycle_dishwasher (Liters per Min)")
     print(calculate_avg_water_consuption_per_cycle_dishwasher(connection))
-    print("     -CALLING FUNCTION: calculate_most_electicity_consumed")
+    print("     -CALLING FUNCTION: calculate_most_electicity_consumed (Amperes)")
     print(calculate_most_electicity_consumed(connection))
     print("")
 
