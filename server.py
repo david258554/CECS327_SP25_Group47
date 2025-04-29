@@ -1,6 +1,6 @@
-#David Rivera
-#cecs 327 assignment 5
-# due: 3/16/2025
+# David Rivera
+# Darrel Dennis
+# CECS 327
 import socket
 import psycopg2 # DARREL: For connecting to Neon and SQL
 
@@ -101,6 +101,7 @@ def start_server():
         inital_test(connection)
 
         # DARREL: This the old server code block!
+        print("RUNNING SERVER CODE:")
         myTCPSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # Allow user to enter a port instead of hardcoding
         serverPort = int(input("Enter the port number to run the server on: "))
