@@ -1,5 +1,13 @@
 import socket
 
+
+# 3 queries 
+valid_queries = [ 
+    "What is the average moisture inside my kitchen fridge in the past three hours?",
+    "What is the average water consumption per cycle in my smart dishwasher?",
+    "3Which device consumed more electricity among my three IoT devices?"
+]
+
 def start_client():
     try:
         serverIP = input("Enter server IP address: ")
@@ -7,17 +15,30 @@ def start_client():
         myTCPSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         myTCPSocket.connect((serverIP, serverPort)) # Connect to the server
         print(f"Connected to server at {serverIP}:{serverPort}")
+
         while True:
-            someData = input("Enter a message to send (or type 'exit' to quit): ")
+            print("\nPlease enter one of the following queries:")
+            for query in valid_queries:
+                print("-", query)
+
+            someData = input("\nYour query (or type 'exit' to quit): ")
             if someData.lower() == "exit":
                 print("Closing connection.")
                 break
-            # Send the message as a bytearray
-            myTCPSocket.send(bytearray(str(someData), encoding='utf-8'))
-            # Receive server response
-            maxBytesToReceive = 1024
-            serverResponse = myTCPSocket.recv(maxBytesToReceive).decode('utf-8')
-            print(f"Server reply: {serverResponse}")
+            #checking if query is valid
+            if someData in valid_queries:
+                myTCPSocket.send(bytearray(str(someData), encoding='utf-8'))
+                maxBytesToReceive = 1024
+                serverResponse = myTCPSocket.recv(maxBytesToReceive).decode('utf-8')
+
+                print(f"\n Server reply: {serverResponse}")
+            else:
+                print("\n Sorry, this query cannot be processed.")
+                print("Please try one of the following valid queries:")
+                for query in valid_queries:
+                    print("-", query)
+
+            
     except ValueError:
         print("Invalid port number. Please enter a valid number.")
     except ConnectionRefusedError:
@@ -26,7 +47,7 @@ def start_client():
         print("Invalid IP address. Please enter a valid address.")
     except Exception as e:
         print(f"An error occurred: {e}")
-    myTCPSocket.close() # Terminate connection with the server
-
+    finally:
+        myTCPSocket.close()
 if __name__ == "__main__":
     start_client()
