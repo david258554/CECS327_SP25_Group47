@@ -93,7 +93,7 @@ def inital_test(connection):
 
 def start_server():
     try:
-        # DARREL: Setup connection
+        # DARREL: Setup query connection
         connecturl = "postgresql://read_only_user:readonlypassyay11124@ep-curly-cloud-a6wcg53n-pooler.us-west-2.aws.neon.tech/neondb?sslmode=require"
         connection = psycopg2.connect(connecturl)
 
@@ -121,13 +121,14 @@ def start_server():
             response = myData.upper()
             incomingSocket.send(bytearray(response, encoding='utf-8'))
 
-        # DARREL: Close connection
+        # DARREL: Close query connection
         connection.close()
 
     except Exception as e:
         print(f"An error occurred: {e}")
         incomingSocket.close() # Close client connection
         myTCPSocket.close() # Close server socket
+        connection.close() # DARREL: Close query connection
 
 if __name__ == "__main__":
     start_server()

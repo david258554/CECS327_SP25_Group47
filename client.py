@@ -1,5 +1,8 @@
-import socket
+# David Rivera
+# Darrel Dennis
+# CECS 327
 
+import socket
 
 # 3 queries 
 valid_queries = [ 
