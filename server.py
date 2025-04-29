@@ -9,7 +9,7 @@ import psycopg2 # DARREL: For connecting to Neon and SQL
 
 def calculate_avg_fridge_moisture(connection):
     # DARREL: This function calls a query onto the passed connection peram, query calculates the average and prints it
-    # DARREL: The units are relative, with values ranging between 0 (0%) and 40 (100%)
+    #         The units are relative, with values ranging between 0 (0%) and 40 (100%)
     cursor = connection.cursor()
     cursor.execute("""
                    SELECT AVG((payload->>'Moisture Meter - moist-sensor_refrigerator_01')::numeric) AS moisture
@@ -19,62 +19,68 @@ def calculate_avg_fridge_moisture(connection):
                    """)
     out = cursor.fetchone()[0]
     cursor.close()
-    return(out)
+    return(float(out))
 
 def calculate_avg_water_consuption_per_cycle_dishwasher(connection):
     # DARREL: This function calls a query onto the passed connection peram, query calculates the average and prints it
-    # DARREL: The units are liters per min
+    #         The units are liters per min
     cursor = connection.cursor()
     cursor.execute("""
                    SELECT AVG((payload->>'YF-S201 - water-flow-sensor_dishwasher_01')::numeric) AS moisture_percent 
                    FROM neon_table_virtual 
-                   WHERE payload->>'board_name' = 'arduino_dishwasher_01' 
-                   AND time > NOW() - INTERVAL '3 hours'; 
+                   WHERE payload->>'board_name' = 'arduino_dishwasher_01';
                    """)
+                   # DARREL: Unsure to add "AND time > NOW() - INTERVAL '3 hours';" or any time limit
+                   #         Currently it just calculates the average of all time
     out = cursor.fetchone()[0]
     cursor.close()
-    return(out)
+    return(float(out))
 
 def calculate_most_electicity_consumed(connection):
     # DARREL: This function calls a query onto the passed connection peram, query calculates the average and prints it
-    # DARREL: The units are, uh, current in amperes
+    #         The units are current in amperes
     cursor = connection.cursor()
 
-    # DARREL: Return voltage from arduino_refrigerator_01
+    # DARREL: Return amperes from arduino_refrigerator_01
     cursor.execute("""
-                   SELECT payload->>'ACS712 - ammeter_refrigerator_01' AS voltage_refrigerator_01
+                   SELECT (payload->>'ACS712 - ammeter_refrigerator_01')
                    FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduino_refrigerator_01';
+                   WHERE payload->>'board_name' = 'arduino_refrigerator_01'
+                   ORDER BY time DESC LIMIT 1;
                    """)
-    refrig_01_amperes = cursor.fetchone()[0]
+    refrig_01_amperes = float(cursor.fetchone()[0])
 
-    # DARREL: Return voltage from arduino_refrigerator_02
+    # DARREL: Return amperes from arduino_refrigerator_02
     cursor.execute("""
-                   SELECT payload->>'ACS712 - ammeter_refrigerator_02' AS voltage_refrigerator_02
-                   FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduino_refrigerator_02';
+                   SELECT (payload->>'ACS712 - ammeter_refrigerator_02')
+            FROM neon_table_virtual
+            WHERE payload->>'board_name' = 'arduino_refrigerator_02'
+            ORDER BY time DESC LIMIT 1;
                    """)
-    refrig_02_amperes = cursor.fetchone()[0]
+    refrig_02_amperes = float(cursor.fetchone()[0])
 
-    # DARREL: Return voltage from arduino_dishwasher_01
+    # DARREL: Return amperes from arduino_dishwasher_01
     cursor.execute("""
-                   SELECT payload->>'ACS712 - ammeter_dishwasher_01' AS voltage_dishwasher_01
-                   FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduino_dishwasher_01';
+                   SELECT (payload->>'ACS712 - ammeter_dishwasher_01')
+            FROM neon_table_virtual
+            WHERE payload->>'board_name' = 'arduino_dishwasher_01'
+            ORDER BY time DESC LIMIT 1;
                    """)
-    diwash_01_amperes = cursor.fetchone()[0]
+    diwash_01_amperes = float(cursor.fetchone()[0])
+
+    cursor.close()
 
     # DARREL: Compare and return largest
     if refrig_01_amperes > refrig_02_amperes and refrig_01_amperes > diwash_01_amperes:
-        return("Largest last reported amperes is \"refrigerator_01\" with: " + refrig_01_amperes)
+        return("Largest last reported amperes is \"refrigerator_01\" with: " + str(refrig_01_amperes))
     elif refrig_02_amperes > refrig_01_amperes and refrig_02_amperes > diwash_01_amperes:
-        return("Largest last reported amperes is \"refrigerator_02\" with: " + refrig_02_amperes)
+        return("Largest last reported amperes is \"refrigerator_02\" with: " + str(refrig_02_amperes))
     else:
-        return("Largest last reported amperes is \"dishwasher_01\" with: " + diwash_01_amperes)
+        return("Largest last reported amperes is \"dishwasher_01\" with: " + str(diwash_01_amperes))
 
 def inital_test(connection):
     # DARREL: This function will call each function, output their results, then go to the start_server function.
-    # DARREL: Using this primarly to just test the functions without connecting a client.
+    #         Using this primarly to just test the functions without connecting a client.
     print("")
     print("RUNNING INITAL TESTS:")
     print("     -CALLING FUNCTION: calculate_avg_fridge_moisture (Relative (0-40))")
