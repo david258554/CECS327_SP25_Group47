@@ -39,7 +39,7 @@ def calculate_avg_water_consuption_per_cycle_dishwasher(connection):
 
 def calculate_most_electicity_consumed(connection):
     # DARREL: This function calls a query onto the passed connection peram, query calculates the average and prints it
-    # DARREL: The units are leters per min
+    # DARREL: The units are, uh, voltage?
     print("--FUNCTION CALLED: calculate_most_electicity_consumed--")
     return(0)
 
@@ -47,19 +47,19 @@ def inital_test(connection):
     # DARREL: This function will call each function, output their results, then go to the start_server function.
     # DARREL: Using this primarly to just test the functions without connecting a client.
     print("")
-    print("RUNING INITAL TESTS:")
-    print("     --CALLING FUNCTION: calculate_avg_fridge_moisture--")
+    print("RUNNING INITAL TESTS:")
+    print("     -CALLING FUNCTION: calculate_avg_fridge_moisture")
     print(calculate_avg_fridge_moisture(connection))
-    print("     --CALLING FUNCTION: calculate_avg_water_consuption_per_cycle_dishwasher--")
+    print("     -CALLING FUNCTION: calculate_avg_water_consuption_per_cycle_dishwasher")
     print(calculate_avg_water_consuption_per_cycle_dishwasher(connection))
-    print("     --CALLING FUNCTION: calculate_most_electicity_consumed--")
+    print("     -CALLING FUNCTION: calculate_most_electicity_consumed")
     print(calculate_most_electicity_consumed(connection))
     print("")
 
 def start_server():
     try:
         # DARREL: Setup connection
-        connecturl = "postgresql://neondb_owner:npg_8cHZMibC2QVt@ep-curly-cloud-a6wcg53n-pooler.us-west-2.aws.neon.tech/neondb?sslmode=require"
+        connecturl = "postgresql://read_only_user:readonlypassyay11124@ep-curly-cloud-a6wcg53n-pooler.us-west-2.aws.neon.tech/neondb?sslmode=require"
         connection = psycopg2.connect(connecturl)
 
         # DARREL: Run every function just to test database connection and queries!
