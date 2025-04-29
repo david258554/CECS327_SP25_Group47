@@ -3,6 +3,22 @@
 # due: 3/16/2025
 import socket
 
+# GOALS:
+# 1. mpliment a function for each of these
+#   a. What is the average moisture inside my kitchen fridge in the past three hours?
+#   b. What is the average water consumption per cycle in my smart dishwasher?
+#   c. Which device consumed more electricity among my three IoT devices (two refrigerators and a dishwasher)?
+# 2. Impliment a menu that returns the results of these functions
+
+def calculate_avg_fridge_moisture():
+    print("FUNCTION CALLED: calculate_avg_fridge_moisture")
+
+def calculate_avg_water_consuption_per_cycle_dishwasher():
+    print("FUNCTION CALLED: calculate_avg_water_consuption_per_cycle_dishwasher")
+
+def calculate_most_electicity_consumed():
+    print("FUNCTION CALLED: calculate_most_electicity_consumed")
+
 def start_server():
     try:
         myTCPSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
