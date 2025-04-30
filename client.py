@@ -7,7 +7,7 @@ import socket
 valid_queries = [ 
     "What is the average moisture inside my kitchen fridge in the past three hours?",
     "What is the average water consumption per cycle in my smart dishwasher?",
-    "3Which device consumed more electricity among my three IoT devices?"
+    "Which device consumed more electricity among my three IoT devices?"
 ]
 
 def start_client():
