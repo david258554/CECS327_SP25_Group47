@@ -85,11 +85,11 @@ def inital_test(connection):
     # Test the functions without connecting a client.
     print("")
     print("RUNNING INITAL TESTS:")
-    print("Test 1: calculate_avg_fridge_moisture (Relative (0-40))")
+    print("Test 1: calculate_avg_fridge_moisture (%)")
     print(calculate_avg_fridge_moisture(connection))
     print("Test 2: calculate_avg_water_consuption_per_cycle_dishwasher (Liters per Min)")
     print(calculate_avg_water_consuption_per_cycle_dishwasher(connection))
-    print("Test 3: calculate_most_electicity_consumed (Amperes)")
+    print("Test 3: calculate_most_electicity_consumed (kWh)")
     print(calculate_most_electicity_consumed(connection))
     print("")
 
