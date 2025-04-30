@@ -36,45 +36,49 @@ def calculate_avg_water_consuption_per_cycle_dishwasher(connection):
     return(float(out))
 
 def calculate_most_electicity_consumed(connection):
-    # Units unknown >.<
+    # units are in kWh
+    # these calculations are made with the assumption that 120V (US) and 5A version of the ACS712 was used
+
+    # arduinorefrigerator_2 - UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
     cursor = connection.cursor()
-
-    # arduino_refrigerator_01 UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
     cursor.execute("""
-                   SELECT (payload->>'ammeter_refrigerator_1')
+                   SELECT ((SUM((payload->>'ammeter_refrigerator_2')::numeric) - (2.5 * COUNT(*))) / 0.185) * 120 / 60 / 1000 AS kWh
                    FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduinorefrigerator_1'
-                   ORDER BY time DESC LIMIT 1;
-                   """)
-    refrig_01 = float(cursor.fetchone()[0])
-
-    # arduino_refrigerator_02 UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
-    cursor.execute("""
-                   SELECT (payload->>'ammeter_refrigerator_2')
-                   FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduinorefrigerator_2'
-                   ORDER BY time DESC LIMIT 1;
+                   WHERE payload->>'board_name' = 'arduinorefrigerator_2';
                    """)
     refrig_02 = float(cursor.fetchone()[0])
-
-    # arduino_dishwasher_01 UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
-    cursor.execute("""
-                   SELECT (payload->>'ammeter_dishwasher_1')
-                   FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduinodishwasher_1'
-                   ORDER BY time DESC LIMIT 1;
-                   """)
-    diwash_01 = float(cursor.fetchone()[0])
-
     cursor.close()
+    del cursor
+
+    # arduinorefrigerator_1 - UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
+    cursor = connection.cursor()
+    cursor.execute("""
+                   SELECT ((SUM((payload->>'ammeter_refrigerator_1')::numeric) - (2.5 * COUNT(*))) / 0.185) * 120 / 60 / 1000 AS kWh
+                   FROM neon_table_virtual
+                   WHERE payload->>'board_name' = 'arduinorefrigerator_1';
+                   """)
+    refrig_01 = float(cursor.fetchone()[0])
+    cursor.close()
+    del cursor
+
+    # arduinodishwasher_01 UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
+    cursor = connection.cursor()
+    cursor.execute("""
+                   SELECT ((SUM((payload->>'ammeter_dishwasher_1')::numeric) - (2.5 * COUNT(*))) / 0.185) * 120 / 60 / 1000 AS kWh
+                   FROM neon_table_virtual
+                   WHERE payload->>'board_name' = 'arduinodishwasher_1';
+                   """)
+    diswas_01 = float(cursor.fetchone()[0])
+    cursor.close()
+    del cursor
 
     # Compare and return largest
-    if refrig_01 > refrig_02 and refrig_01 > diwash_01:
-        return("Largest last reported amperes is \"refrigerator 1\" with: " + str(refrig_01))
-    elif refrig_02 > refrig_01 and refrig_02 > diwash_01:
-        return("Largest last reported amperes is \"refrigerator 2\" with: " + str(refrig_02))
+    if refrig_02 > refrig_01 and refrig_02 > diswas_01:
+        return("Largest lifetime power draw is \"refrigerator 2\" with: " + str(refrig_02) + " kWh")
+    elif refrig_01 > refrig_02 and refrig_01 > diswas_01:
+        return("Largest lifetime power draw is \"refrigerator 1\" with: " + str(refrig_01) + " kWh")
     else:
-        return("Largest last reported amperes is \"dishwasher 1\" with: " + str(diwash_01))
+        return("Largest lifetime power draw is \"dishwasher 1\" with: " + str(diswas_01) + " kWh")
 
 def inital_test(connection):
     # Test the functions without connecting a client.
