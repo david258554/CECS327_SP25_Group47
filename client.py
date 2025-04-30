@@ -1,5 +1,4 @@
 # David Rivera
-# Darrel Dennis
 # CECS 327
 
 import socket
