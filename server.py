@@ -5,6 +5,7 @@ import psycopg2 # For connecting to Neon and SQL
 
 def calculate_avg_fridge_moisture(connection):
     # units are relative, with values ranging between 0 (0%) and 40 (100%)
+    # only pulls last three hours of data for the first refreigerator
     cursor = connection.cursor()
 
     # UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
@@ -61,7 +62,7 @@ def calculate_most_electicity_consumed(connection):
     cursor.close()
     del cursor
 
-    # arduinodishwasher_01 UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
+    # arduinodishwasher_1 UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
     cursor = connection.cursor()
     cursor.execute("""
                    SELECT ((SUM((payload->>'ammeter_dishwasher_1')::numeric) - (2.5 * COUNT(*))) / 0.185) * 120 / 60 / 1000 AS kWh
@@ -95,8 +96,8 @@ def inital_test(connection):
 def start_server():
     try:
         # Setup query connection
-        connecturl = "" # Add connection url here
-        connection = psycopg2.connect(connecturl)
+        connectline = "" # ADD CONNECTION LINE HERE
+        connection = psycopg2.connect(connectline)
 
         # Run every function just to test database connection and queries!
         inital_test(connection)
