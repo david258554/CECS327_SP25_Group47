@@ -3,7 +3,7 @@
 
 ## Team Members
 - David Rivera
-- Daniel Dennis
+- Prajwal Sharma
 
 ## Project Description
 This project focuses on ....
