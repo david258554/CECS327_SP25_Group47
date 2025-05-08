@@ -1,136 +1,108 @@
-# David Rivera
-# CECS 327
 import socket
-import psycopg2 # For connecting to Neon and SQL
+import psycopg2
+import os
+from datetime import datetime
 
-def calculate_avg_fridge_moisture(connection):
-    # units are relative, with values ranging between 0 (0%) and 40 (100%)
-    # only pulls last three hours of data for the first refreigerator
-    cursor = connection.cursor()
+# This is the connection string used to connect to the PostgreSQL database
+DB_URL = "postgresql://neondb_owner:npg_Ma6fxrsweH2A@ep-proud-sun-a4gsaw7j-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require"
 
-    # UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
-    cursor.execute("""
-                   SELECT AVG((payload->>'moist-sensor_refrigerator_1')::numeric) AS moisture
-                   FROM neon_table_virtual 
-                   WHERE payload->>'board_name' = 'arduinorefrigerator_1' 
-                   AND time > NOW() - INTERVAL '3 hours'; 
-                   """)
-    
-    out = cursor.fetchone()[0]
-    cursor.close()
-    return((float(out) / 40 * 100)) # This is a percentage!
+ALLOWED_QUERIES = {
+    "What is the average moisture inside my kitchen fridge in the past three hours?": """
+        SELECT AVG((kv.value)::NUMERIC) AS avg_moisture 
+        FROM "IOTDATA_virtual"
+        CROSS JOIN LATERAL jsonb_each_text(payload::JSONB) AS kv(key, value)
+        WHERE payload::jsonb->>'board_name' = 'Fridge1Rasberry'
+        AND kv.key = 'DHT11 - Fridge1DHT11Humidity'
+        AND time > NOW() - INTERVAL '3 hours';
+    """,
 
-def calculate_avg_water_consuption_per_cycle_dishwasher(connection):
-    # The units are liters per min
-    cursor = connection.cursor()
+    "What is the average water consumption per cycle in my smart dishwasher?": """
+        SELECT AVG(CAST(payload::jsonb->>'YF-S201 - DishwasherYFS201WATERFLOW' AS FLOAT))
+        FROM "IOTDATA_virtual"
+        WHERE payload::jsonb->>'board_name' = 'DishwasherRasberry';
+    """,
 
-    # UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
-    cursor.execute("""
-                   SELECT AVG((payload->>'water-flow-sensor_dishwasher_1')::numeric) AS moisture_percent 
-                   FROM neon_table_virtual 
-                   WHERE payload->>'board_name' = 'arduinodishwasher_1';
-                   """)
-                   # Currently it just calculates the average of all time
+    "Which device consumed more electricity among my three IoT devices (two refrigerators and a dishwasher)?": """
+        SELECT payload::jsonb->>'board_name' as board_name, 
+        ABS(AVG(CAST(payload::jsonb->>'ACS712 - Fridge1ACS712Current' AS FLOAT))) AS avg_current
+        FROM "IOTDATA_virtual"
+        WHERE payload::jsonb->>'board_name' IN ('Fridge1Rasberry', 'Fridge2Rasberry', 'DishwasherRasberry')
+        AND (payload::jsonb->>'ACS712 - Fridge1ACS712Current') ~ '^[0-9.]+$'
+        GROUP BY payload::jsonb->>'board_name'
+        ORDER BY avg_current DESC
+        LIMIT 1;
+    """
+}
 
-    out = cursor.fetchone()[0]
-    cursor.close()
-    return(float(out))
 
-def calculate_most_electicity_consumed(connection):
-    # units are in kWh
-    # these calculations are made with the assumption that 120V (US) and 5A version of the ACS712 was used
+# percentage (1)
+# liters per min for (2)
 
-    # arduinorefrigerator_2 - UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
-    cursor = connection.cursor()
-    cursor.execute("""
-                   SELECT ((SUM((payload->>'ammeter_refrigerator_2')::numeric) - (2.5 * COUNT(*))) / 0.185) * 120 / 60 / 1000 AS kWh
-                   FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduinorefrigerator_2';
-                   """)
-    refrig_02 = float(cursor.fetchone()[0])
-    cursor.close()
-    del cursor
 
-    # arduinorefrigerator_1 - UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
-    cursor = connection.cursor()
-    cursor.execute("""
-                   SELECT ((SUM((payload->>'ammeter_refrigerator_1')::numeric) - (2.5 * COUNT(*))) / 0.185) * 120 / 60 / 1000 AS kWh
-                   FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduinorefrigerator_1';
-                   """)
-    refrig_01 = float(cursor.fetchone()[0])
-    cursor.close()
-    del cursor
+def process_query(query):
+    # Check if the query is supported
+    if query not in ALLOWED_QUERIES:
+        return ("Unsupported query. Please use one of the following:\n" +
+                "\n".join(f"- {q}" for q in ALLOWED_QUERIES))
 
-    # arduinodishwasher_1 UPDATE W/ PROPER SENSOR NAMES AND BOARD NAMES
-    cursor = connection.cursor()
-    cursor.execute("""
-                   SELECT ((SUM((payload->>'ammeter_dishwasher_1')::numeric) - (2.5 * COUNT(*))) / 0.185) * 120 / 60 / 1000 AS kWh
-                   FROM neon_table_virtual
-                   WHERE payload->>'board_name' = 'arduinodishwasher_1';
-                   """)
-    diswas_01 = float(cursor.fetchone()[0])
-    cursor.close()
-    del cursor
-
-    # Compare and return largest
-    if refrig_02 > refrig_01 and refrig_02 > diswas_01:
-        return("Largest lifetime power draw is \"refrigerator 2\" with: " + str(refrig_02) + " kWh")
-    elif refrig_01 > refrig_02 and refrig_01 > diswas_01:
-        return("Largest lifetime power draw is \"refrigerator 1\" with: " + str(refrig_01) + " kWh")
-    else:
-        return("Largest lifetime power draw is \"dishwasher 1\" with: " + str(diswas_01) + " kWh")
-
-def inital_test(connection):
-    # Test the functions without connecting a client.
-    print("")
-    print("RUNNING INITAL TESTS:")
-    print("Test 1: calculate_avg_fridge_moisture (%)")
-    print(calculate_avg_fridge_moisture(connection))
-    print("Test 2: calculate_avg_water_consuption_per_cycle_dishwasher (Liters per Min)")
-    print(calculate_avg_water_consuption_per_cycle_dishwasher(connection))
-    print("Test 3: calculate_most_electicity_consumed (kWh)")
-    print(calculate_most_electicity_consumed(connection))
-    print("")
-
-def start_server():
     try:
-        # Setup query connection
-        connectline = "" # ADD CONNECTION LINE HERE
-        connection = psycopg2.connect(connectline)
+        # Connect to the database
+        conn = psycopg2.connect(DB_URL)
+        cur = conn.cursor()
+        # Execute the query associated with the input
+        cur.execute(ALLOWED_QUERIES[query])
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
 
-        # Run every function just to test database connection and queries!
-        inital_test(connection)
-
-        # This the old server code block!
-        print("RUNNING SERVER CODE:")
-        myTCPSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Allow user to enter a port instead of hardcoding
-        serverPort = int(input("Enter the port number to run the server on: "))
-        myTCPSocket.bind(('0.0.0.0', serverPort)) # Binds to localhost
-        myTCPSocket.listen(5) # Allows up to 5 connections in queue
-        print(f"Server is running on port {serverPort}... Waiting for connections.")
-        incomingSocket, incomingAddress = myTCPSocket.accept()
-        print(f"Connection established with {incomingAddress}")
-        while True:
-            numberOfBytes = 1024 # Maximum bytes to receive
-            myData = incomingSocket.recv(numberOfBytes).decode('utf-8') # Receive message from client
-            if not myData: # If client disconnects
-                print("Client disconnected.")
-                break
-            print(f"Received from client: {myData}")
-            # Convert the received message to uppercase and send it back
-            response = myData.upper()
-            incomingSocket.send(bytearray(response, encoding='utf-8'))
-
-        # Close query connection
-        connection.close()
+        # Return formatted result
+        if result and result[0] is not None:
+            return f"Query result: {result[0]:.2f}" if isinstance(result[0],
+                                                                  (float, int)) else f"Query result: {result[0]}"
+        else:
+            return "No data available for this query."
 
     except Exception as e:
-        print(f"An error occurred: {e}")
-        incomingSocket.close() # Close client connection
-        myTCPSocket.close() # Close server socket
-        connection.close() # Close query connection
+        return f"Error processing query: {e}"
+
+
+def main():
+    # Create a TCP server socket
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    # Accept IP and port input from user for flexibility
+    host = input("Enter IP address to bind (leave blank for all interfaces): ") or ""
+    port = int(input("Enter port number to listen on: "))
+    server_socket.bind((host, port))
+    server_socket.listen(5)
+    print(f"Server listening on {host or '0.0.0.0'}:{port}")
+
+    try:
+        while True:
+            # Accept new client connections
+            client_socket, addr = server_socket.accept()
+            print(f"Connection from {addr[0]}:{addr[1]}")
+
+            while True:
+                # Receive data from client
+                data = client_socket.recv(2048).decode().strip()
+                if not data:
+                    break
+                print(f"Received: {data}")
+                # Process the query and send response
+                response = process_query(data)
+                client_socket.sendall((response + "\n").encode())
+
+            # Close client connection
+            client_socket.close()
+            print("Client disconnected.")
+    except KeyboardInterrupt:
+        print("\nShutting down server...")
+    finally:
+        # Ensure server socket is closed on exit
+        server_socket.close()
+
 
 if __name__ == "__main__":
-    start_server()
+    main()
