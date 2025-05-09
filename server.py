@@ -1,12 +1,13 @@
-import socket
-import psycopg2
+import socket #for creating tcp server socket
+import psycopg2 # for postgresSQl database
 import os
 from datetime import datetime
 
 # This is the connection string used to connect to the PostgreSQL database
 DB_URL = "postgresql://neondb_owner:npg_Ma6fxrsweH2A@ep-proud-sun-a4gsaw7j-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require"
-
+#dictionary of allowed queries 
 ALLOWED_QUERIES = {
+    #query 1
     "What is the average moisture inside my kitchen fridge in the past three hours?": """
         SELECT AVG((kv.value)::NUMERIC) AS avg_moisture 
         FROM "IOTDATA_virtual"
@@ -15,13 +16,13 @@ ALLOWED_QUERIES = {
         AND kv.key = 'DHT11 - Fridge1DHT11Humidity'
         AND time > NOW() - INTERVAL '3 hours';
     """,
-
+     #query 2
     "What is the average water consumption per cycle in my smart dishwasher?": """
         SELECT AVG(CAST(payload::jsonb->>'YF-S201 - DishwasherYFS201WATERFLOW' AS FLOAT))
         FROM "IOTDATA_virtual"
         WHERE payload::jsonb->>'board_name' = 'DishwasherRasberry';
     """,
-
+    #query 3
     "Which device consumed more electricity among my three IoT devices (two refrigerators and a dishwasher)?": """
         SELECT payload::jsonb->>'board_name' as board_name, 
         ABS(AVG(CAST(payload::jsonb->>'ACS712 - Fridge1ACS712Current' AS FLOAT))) AS avg_current
@@ -38,7 +39,7 @@ ALLOWED_QUERIES = {
 # percentage (1)
 # liters per min for (2)
 
-
+#function to process incoming queries
 def process_query(query):
     # Check if the query is supported
     if query not in ALLOWED_QUERIES:
@@ -65,7 +66,7 @@ def process_query(query):
     except Exception as e:
         return f"Error processing query: {e}"
 
-
+#main function to run the tcp server
 def main():
     # Create a TCP server socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
